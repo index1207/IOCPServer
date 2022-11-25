@@ -2,23 +2,19 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Main">
-      <UniqueIdentifier>{3e29a16f-ef74-4423-a2c0-d8de7b8c8300}</UniqueIdentifier>
+      <UniqueIdentifier>{2dff63fb-9da3-4f27-bc67-bd98d5fce5e9}</UniqueIdentifier>
     </Filter>
     <Filter Include="Utils">
-      <UniqueIdentifier>{c5137d22-362f-4507-af6f-5c1c55ca0262}</UniqueIdentifier>
+      <UniqueIdentifier>{6b02a6ec-34e7-4158-83e3-d0e89746585c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
     <ClCompile Include="main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="pch.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
