@@ -8,15 +8,22 @@
 #include <future>
 #include <Windows.h>
 
-int main() {
-	atomic<int64> num;
-	cout << boolalpha << num.is_lock_free() << '\n';
+#include "ThreadManager.h"
 
-	struct A {
-		int32 a;
-		int32 b;
-		int32 c;
-	};
-	atomic<A> a;
-	cout << boolalpha << a.is_lock_free() << '\n';
+CoreGlobal core;
+
+void ThreadMain() {
+	while (true)
+	{
+		cout << "Hello. I\'m thread... " << LThreadId << '\n';
+		this_thread::sleep_for(1s);
+	}
+}
+
+int main() {
+	for (int32 i = 0; i < 5; ++i)
+	{
+		GThreadManager->Launch(ThreadMain);
+	}
+	GThreadManager->Join();
 }

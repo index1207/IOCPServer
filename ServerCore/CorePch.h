@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Types.h"
+#include "CoreMachro.h"
+#include "CoreTLS.h"
+#include "CoreGlobal.h"
 
 #include <vector>
 #include <list>
@@ -14,5 +17,3 @@
 #include <iostream>
 
 using namespace std;
-
-void helloWord();
