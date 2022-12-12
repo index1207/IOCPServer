@@ -1,5 +1,8 @@
 #pragma once
 
+#define IN
+#define OUT
+
 #define CRASH(cause)					 \
 {										 \
 	uint32* crash = nullptr;			 \
