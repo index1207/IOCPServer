@@ -15,4 +15,4 @@ public:
 	{
 		delete GThreadManager;
 	}
-} CoreGlobal;
+} CoreGlobal{};
