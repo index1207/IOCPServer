@@ -83,8 +83,8 @@ public:
 		return _ptr > rhs._ptr;
 	}
 	T* operator*() { return _ptr; }
-	const T* operator() const { return _ptr; }
-	operator T* () const { _ptr };
+	const T* operator*() const { return _ptr; }
+	operator T* () const { _ptr; }
 	T* operator->() { return _ptr; }
 	const T* operator->() { return _ptr; }
 public:
