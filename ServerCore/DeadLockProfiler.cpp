@@ -4,7 +4,7 @@
 void DeadLockProfiler::PushLock(const char* name)
 {
 	LockGuard guard(_lock); // 멀티스레드 환경이므로 락을 걸어줘야 한다.
-
+	
 	// 아이디를 찾거나 발급한다.
 	int32 lockId = 0; // 현재 스레드 아이디
 	auto findIter = _nameToId.find(name);
@@ -18,12 +18,11 @@ void DeadLockProfiler::PushLock(const char* name)
 	{
 		lockId = findIter->second;
 	}
-
 	// 잡고 있는 락이 있었다면
-	if (!_lockStack.empty())
+	if (!LLockStack.empty())
 	{
 		// 기존에 발견되지 않은 케이스라면 데드락 여부를 다시 확인한다.
-		const auto prevId = _lockStack.top();
+		const auto prevId = LLockStack.top();
 		if (lockId != prevId)
 		{
 			auto& history = _lockHistory[prevId];
@@ -34,25 +33,25 @@ void DeadLockProfiler::PushLock(const char* name)
 			}
 		}
 	}
-	_lockStack.push(lockId);
+	LLockStack.push(lockId);
 }
 
 void DeadLockProfiler::PopLock(const char* name)
 {
 	LockGuard guard(_lock);
 
-	if (_lockStack.empty())
+	if (LLockStack.empty())
 	{
 		CRASH("MULTIFLE_UNLOCK");
 	}
 
 	auto lockId = _nameToId[name];
-	if (_lockStack.top() != lockId)
+	if (LLockStack.top() != lockId)
 	{
 		CRASH("INVALID_UNLOCK")
 	}
 
-	_lockStack.pop();
+	LLockStack.pop();
 }
 
 void DeadLockProfiler::CheckCycle()
