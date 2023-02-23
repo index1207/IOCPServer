@@ -1,10 +1,11 @@
 #include "pch.h"
 #include "Allocator.h"
+#include "Memory.h"
+
 
 /*--------------------
 	  BaseAllocator
   --------------------*/
-
 
 void* BaseAllocator::Alloc(size_t size)
 {
@@ -16,6 +17,7 @@ void BaseAllocator::Release(void* ptr)
 	free(ptr);
 	ptr = nullptr;
 }
+
 
 /*------------------
 	StompAllocator
@@ -35,4 +37,19 @@ void StompAllocator::Release(void* ptr)
 	const int64 addr = reinterpret_cast<int64>(ptr);
 	const int64 baseAddr = addr - (addr % PAGE_SIZE);
 	::VirtualFree(reinterpret_cast<void*>(baseAddr), 0, MEM_RELEASE);
+}
+
+
+/*------------------
+	PoolAllocator
+  ------------------*/
+
+void* PoolAllocator::Alloc(size_t size)
+{
+	return GMemory->Allocate(size);
+}
+
+void PoolAllocator::Release(void* ptr)
+{
+	GMemory->Release(ptr);
 }

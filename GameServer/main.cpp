@@ -41,6 +41,19 @@ public:
 
 int main()
 {
-	HashMap<int32, Knight> m;
-	m[100] = Knight();
+	for (int32 i = 0; i < 5; ++i)
+	{
+		GThreadManager->Launch([]()
+		{
+			while (true)
+			{
+				Vector<Knight> v(10);
+				Map<int32, Knight> m;
+				m[100] = Knight();
+
+				this_thread::sleep_for(10ms);
+			}
+		});
+	}
+	GThreadManager->Join();
 }

@@ -27,6 +27,18 @@ public:
 };
 
 /*------------------
+	PoolAllocator
+  ------------------*/
+
+class PoolAllocator
+{
+public:
+	static void* Alloc(size_t size);
+	static void Release(void* ptr);
+};
+
+
+/*------------------
 	 STL Allocator
   ------------------*/
 template<typename T>
