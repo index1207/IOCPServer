@@ -1,13 +1,18 @@
 #include "pch.h"
 #include "MemoryPool.h"
 
+/*---------------
+	Memory Pool
+  ---------------*/
+
 MemoryPool::MemoryPool(int32 size) : _allocSize(size)
 {
 }
 
 MemoryPool::~MemoryPool()
 {
-	while (!_queue.empty()) {
+	while (!_queue.empty())
+	{
 		MemoryHeader* header = _queue.front();
 		_queue.pop();
 		::free(header);
@@ -47,5 +52,5 @@ MemoryHeader* MemoryPool::pop()
 
 	_allocCount.fetch_add(1);
 
-	return nullptr;
+	return header;
 }
