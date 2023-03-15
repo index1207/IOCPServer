@@ -32,7 +32,7 @@ private:
 template<class Type, class ...Args>
 inline Type* xnew(Args&&... args)
 {
-	Type* memory = static_cast<Type*>(XALLOC(sizeof(Type)));
+	Type* memory = static_cast<Type*>(PoolAllocator::Alloc(sizeof(Type)));
 	new(memory)Type(forward<Args>(args)...);
 	return memory;
 }
@@ -41,5 +41,11 @@ template<class Type>
 inline void xdelete(Type* ptr)
 {
 	ptr->~Type();
-	XRELEASE(ptr);
+	PoolAllocator::Release(ptr);
+}
+
+template<class Type>
+inline shared_ptr<Type> MakeShared()
+{
+	return shared_ptr<Type>{xnew<Type>(), xdelete<Type>};
 }

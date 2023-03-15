@@ -1,5 +1,7 @@
 #pragma once
 
+#define _STOMP
+
 #define OUT
 
 /* ---------

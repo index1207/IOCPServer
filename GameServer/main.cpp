@@ -7,15 +7,19 @@
 
 struct Data
 {
-	int _id;
+	Data() {
+		_id++;
+	}
+	static int _id;
+	char str[12];
 };
+
+int Data::_id = 0;
 
 int main()
 {
-	Data* d[10];
-	for (int i = 0; i < 10; ++i)
-		d[i] = ObjectPool<Data>::Pop();
-	
-	for (int i = 0; i < 5; ++i)
-		ObjectPool<Data>::Push(d[i]);
+	auto ptr1 = MakeShared<Data>();
+	cout << ptr1->_id << '\n';
+	auto ptr2 = ObjectPool<Data>::Pop();
+	cout << ptr2->_id << '\n';
 }

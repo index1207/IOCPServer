@@ -9,7 +9,13 @@ public:
 	template<typename ...Args>
 	static Type* Pop(Args&& ...args)
 	{
+#ifdef _STOMP
+		MemoryHeader* ptr = reinterpret_cast<MemoryHeader*>(StompAllocator::Alloc(s_allocSize));
+		Type* memory = static_cast<Type*>(MemoryHeader::AttachHeader(ptr, s_allocSize));
+#else
 		Type* memory = static_cast<Type*>(MemoryHeader::AttachHeader(s_pool.pop(), s_allocSize));
+#endif // _STOMP
+
 		new(memory)Type(std::forward<Args>(args)...);
 		return memory;
 	}
@@ -17,7 +23,11 @@ public:
 	static void Push(Type* ptr)
 	{
 		ptr->~Type();
+#ifdef _STOMP
+		StompAllocator::Release(MemoryHeader::DetachHeader(ptr));
+#else
 		MemoryHeader::DetachHeader(ptr);
+#endif // _STOMP
 	}
 
 	static std::shared_ptr<Type> MakeShared()
