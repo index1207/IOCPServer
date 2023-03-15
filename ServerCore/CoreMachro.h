@@ -21,7 +21,7 @@
 #define	XALLOC(size) PoolAllocator::Alloc(size)
 #define	XRELEASE(object) PoolAllocator::Release(object)
 #else
-#define	XALLOC(type) BaseAllocator::Alloc(sizeof(type))
+#define	XALLOC(type) BaseAllocator::Alloc(type)
 #define	XRELEASE(object) BaseAllocator::Release(object)
 #endif
 

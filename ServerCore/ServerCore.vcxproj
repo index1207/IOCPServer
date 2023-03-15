@@ -147,7 +147,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>Default</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -173,6 +173,7 @@
     <ClInclude Include="RefCounting.h" />
     <ClInclude Include="ThreadManager.h" />
     <ClInclude Include="Types.h" />
+    <ClInclude Include="ObjectPool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator.cpp" />

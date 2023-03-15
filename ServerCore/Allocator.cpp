@@ -28,7 +28,7 @@ void* StompAllocator::Alloc(size_t size)
 	const int32 pageCount = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 	const int32 dataOffset = pageCount * PAGE_SIZE - size;
 
-	void* objAddr = ::VirtualAlloc(NULL, pageCount * PAGE_SIZE, MEM_RESERVE | MEM_COMMIT | MEM_TOP_DOWN, PAGE_READWRITE);
+	void* objAddr = ::VirtualAlloc(NULL, pageCount * PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	return static_cast<void*>(static_cast<int8*>(objAddr) + dataOffset);
 }
 

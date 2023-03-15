@@ -34,8 +34,8 @@ using Queue = queue<Type, Container>;
 template<typename Type, typename Container = Deque<Type>>
 using Stack = stack<Type, Container>;
 
-template<typename T, typename Container=Vector<T>, typename Pred=less<typename Container::value_type>>
-using PriorityQueue = priority_queue<T, Container, Pred>;
+template<typename Type, typename Container=Vector<Type>, typename Pred=less<typename Container::value_type>>
+using PriorityQueue = priority_queue<Type, Container, Pred>;
 
 using String = basic_string<char, char_traits<char>, STLAllocator<char>>;
 

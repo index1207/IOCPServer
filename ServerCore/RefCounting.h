@@ -21,12 +21,12 @@ protected:
 	  SharedPtr
 -------------------*/
 
-template<class T>
+template<class Type>
 class SharedPtr
 {
 public:
 	SharedPtr() {}
-	SharedPtr(T* ptr) { Set(ptr); }
+	SharedPtr(Type* ptr) { Set(ptr); }
 
 	SharedPtr(const SharedPtr& rhs) { Set(rhs._ptr); }
 
@@ -37,7 +37,7 @@ public:
 	}
 
 	template<class U>
-	SharedPtr(const SharedPtr<U>& rhs) { Set(static_cast<T>(rhs._ptr)); }
+	SharedPtr(const SharedPtr<U>& rhs) { Set(static_cast<Type>(rhs._ptr)); }
 
 	~SharedPtr() { Release(); }
 public:
@@ -62,7 +62,7 @@ public:
 	{
 		return _ptr == rhs._ptr;
 	}
-	bool operator==(T* ptr) const
+	bool operator==(Type* ptr) const
 	{
 		return _ptr == ptr;
 	}
@@ -70,7 +70,7 @@ public:
 	{
 		return _ptr != rhs._ptr;
 	}
-	bool operator!=(T* ptr) const
+	bool operator!=(Type* ptr) const
 	{
 		return _ptr != ptr;
 	}
@@ -82,15 +82,15 @@ public:
 	{
 		return _ptr > rhs._ptr;
 	}
-	T* operator*() { return _ptr; }
-	const T* operator*() const { return _ptr; }
-	operator T* () const { _ptr; }
-	T* operator->() { return _ptr; }
-	const T* operator->() { return _ptr; }
+	Type* operator*() { return _ptr; }
+	const Type* operator*() const { return _ptr; }
+	operator Type* () const { _ptr; }
+	Type* operator->() { return _ptr; }
+	const Type* operator->() { return _ptr; }
 public:
 	bool isNull() { return _ptr == nullptr; }
 private:
-	inline void Set(T* ptr)
+	inline void Set(Type* ptr)
 	{
 		_ptr = ptr;
 		if (ptr) ptr->AddRef();
@@ -104,5 +104,5 @@ private:
 		}
 	}
 private:
-	T* _ptr = nullptr;
+	Type* _ptr = nullptr;
 };

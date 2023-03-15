@@ -41,24 +41,24 @@ public:
 /*------------------
 	 STL Allocator
   ------------------*/
-template<typename T>
+template<typename Type>
 class STLAllocator
 {
 public:
-	using value_type = T;
+	using value_type = Type;
 
 	STLAllocator() { };
 
 	template<typename Other>
 	STLAllocator(const STLAllocator<Other>&) { }
 
-	T* allocate(size_t count)
+	Type* allocate(size_t count)
 	{
-		const int32 size = count * sizeof(T);
-		return static_cast<T*>(XALLOC(size));
+		const int32 size = count * sizeof(Type);
+		return static_cast<Type*>(XALLOC(size));
 	}
 
-	void deallocate(T* ptr, size_t count)
+	void deallocate(Type* ptr, size_t count)
 	{
 		XRELEASE(ptr);
 	}
