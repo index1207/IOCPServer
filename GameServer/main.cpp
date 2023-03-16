@@ -4,22 +4,26 @@
 
 #include "RefCounting.h"
 #include "Memory.h"
+#include "TypeCast.h"
 
-struct Data
+class Animal
 {
-	Data() {
-		_id++;
-	}
-	static int _id;
-	char str[12];
+
 };
 
-int Data::_id = 0;
+class Dog : public Animal
+{
+
+};
+
+class Cat : public Animal
+{
+
+};
 
 int main()
 {
-	auto ptr1 = MakeShared<Data>();
-	cout << ptr1->_id << '\n';
-	auto ptr2 = ObjectPool<Data>::Pop();
-	cout << ptr2->_id << '\n';
+	Dog* d = checked_cast<Dog*>(new Animal());
+
+	return 0;
 }
