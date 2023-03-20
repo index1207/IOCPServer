@@ -76,7 +76,7 @@ class Convertion
 {
 	//서로 다른 형식을 넣어 구분하기 위함
 	using Small = __int8;
-	using Big = __int32;
+	using Big = int32;
 
 	// 캐스팅이 가능하다면 Small타입을 리턴
 	static Small Test(const To&) { }
@@ -84,10 +84,10 @@ class Convertion
 	// 캐스팅이 안된다면 Big타입을 리턴
 	static Big Test(...) { }
 
-	//// From타입의 인스턴스를 리턴
-	//static From MakeFrom() { }
+	// From타입의 인스턴스를 리턴
+	static From MakeFrom() { }
 public:
-	enum { exist = sizeof(Test(From())) == sizeof(Small) };
+	enum { exist = sizeof(Test(MakeFrom())) == sizeof(Small) };
 };
 
 template<int32 v>
@@ -130,6 +130,12 @@ public:
 	static void MakeConvertion(Int<length>, Int<j>)
 	{
 	}
+
+	static inline bool CanConvert(int32 from, int32 to)
+	{
+		static TypeConvertion conv;
+		return convertion_table[from][to];
+	}
 public:
 	static bool convertion_table[length][length];
 };
@@ -138,8 +144,61 @@ template<class TL>
 bool TypeConvertion<TL>::convertion_table[length][length];
 
 template<class To, class From>
-To checked_cast(const From from)
+To checked_cast(From* ptr)
 {
-	if (!Convertion<From, To>::exist) CRASH("Wrong type casting!");
-	return static_cast<To>(from);
+	if (ptr == nullptr)
+		return nullptr;
+
+	using TL = typename From::TL;
+
+	if (TypeConvertion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value))
+		return static_cast<To>(ptr);
+
+	return nullptr;
 }
+
+template<class To, class From>
+shared_ptr<From> checked_cast(shared_ptr<From> ptr)
+{
+	if (ptr == nullptr)
+		return nullptr;
+
+	using TL = typename From::TL;
+
+	if (TypeConvertion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value))
+		return static_pointer_cast<To>(ptr);
+
+	return nullptr;
+}
+
+
+template<typename To, typename From>
+bool CanCast(From* ptr)
+{
+	if (ptr == nullptr)
+		return false;
+
+	using TL = typename From::TL;
+
+	if (TypeConvertion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value))
+		return true;
+
+	return false;
+}
+
+template<typename To, typename From>
+bool CanCast(shared_ptr<From> ptr)
+{
+	if (ptr == nullptr)
+		return false;
+
+	using TL = typename From::TL;
+
+	if (TypeConvertion<TL>::CanConvert(ptr->_typeId, IndexOf<TL, remove_pointer_t<To>>::value))
+		return true;
+
+	return false;
+}
+
+#define CASTABLE_CLASS using TL = TL; int32 _typeId;
+#define INIT_ID(type) _typeId = IndexOf<TL, type>::value;

@@ -1,29 +1,30 @@
 #include "pch.h"
-#include "CorePch.h"
-#include "ThreadManager.h"
+#include <iostream>
 
-#include "RefCounting.h"
-#include "Memory.h"
-#include "TypeCast.h"
+using TL = TypeList<class Player, class Knight, class Archer>;
 
-class Animal
+class Player
 {
-
+public:
+	CASTABLE_CLASS;
+public:
+	Player() { INIT_ID(Player); }
 };
 
-class Dog : public Animal
+class Knight : public Player
 {
-
+public:
+	Knight() { INIT_ID(Knight); }
 };
 
-class Cat : public Animal
+class Archer : public Player
 {
-
+public:
+	Archer() { INIT_ID(Archer); }
 };
 
 int main()
 {
-	Dog* d = checked_cast<Dog*>(new Animal());
-
-	return 0;
+	Player* p = new Knight();
+	Knight* k = checked_cast<Knight*>(p);
 }
