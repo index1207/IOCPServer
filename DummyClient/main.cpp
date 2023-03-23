@@ -14,6 +14,7 @@ void HandleError(string cause)
 
 int main()
 {
+	this_thread::sleep_for(100ms);
 	WSADATA wsaData;
 	if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
@@ -55,7 +56,7 @@ int main()
 			// Error
 			break;
 		}
-		cout << "Send Data! (" << sizeof(buf) << "\n";
+		cout << "Send Data! (" << sizeof(buf) << ")\n";
 
 		while (true)
 		{

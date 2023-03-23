@@ -32,70 +32,110 @@ int main()
 		HandleError("Init");
 	}
 
-	SOCKET sock = socket(PF_INET, SOCK_STREAM, 0);
+	SOCKET listenSock = socket(PF_INET, SOCK_STREAM, 0);
 
 	SOCKADDR_IN addr;
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(1225);
 
-	::bind(sock, (SOCKADDR*)&addr, sizeof(addr));
-	::listen(sock, SOMAXCONN);
+	::bind(listenSock, (SOCKADDR*)&addr, sizeof(addr));
+	::listen(listenSock, SOMAXCONN);
 
-	vector<Session> v;
-	v.reserve(100);
+	vector<WSAEVENT> events;
+	vector<Session> sessions;
+	sessions.reserve(100);
 
-	fd_set read;
-	fd_set write;
+	WSAEVENT listenEvent = ::WSACreateEvent();
+	events.push_back(listenEvent);
+	sessions.push_back({ listenSock });
+	/*
+		FD_ACCEPT  : 접속한 클라가 있음
+		FD_READ    : 데이터 수신 가능
+		FD_WRITE   : 데이터 송신 가능
+		FD_CLOSE   : 상대가 접속 종료
+		FD_CONNECT : 통신을 위한 연결 절차 완료
+		FD_OOB     : OOB 데이터
+	*/
+	if (::WSAEventSelect(listenSock, listenEvent, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR)
+	{
+		return -1;
+	}
+
 	while (true)
 	{
-		FD_ZERO(&read);
-		FD_ZERO(&write);
+		int32 index = ::WSAWaitForMultipleEvents(events.size(), &events[0], false, WSA_INFINITE, false);
+		index -= WSA_WAIT_EVENT_0;
 
-		FD_SET(sock, &read);
+		//::WSAResetEvent(events[index]);
 
-		for (Session& s : v)
-		{
-			if (s.recvBytes <= s.sendBytes)
-				FD_SET(s.sock, &read);
-			else FD_SET(s.sock, &write);
-		}
+		WSANETWORKEVENTS networkEvent;
+		if (::WSAEnumNetworkEvents(sessions[index].sock, events[index], &networkEvent) == SOCKET_ERROR)
+			continue;
 
-		if (::select(NULL, &read, &write, nullptr, nullptr) == SOCKET_ERROR)
-			break;
-		
-		if (FD_ISSET(sock, &read))
-		{
+		if (networkEvent.lNetworkEvents & FD_ACCEPT)
+		{	
+			if (networkEvent.iErrorCode[FD_ACCEPT_BIT] != 0)
+				continue;
+			
 			SOCKADDR_IN clientAddr;
 			int32 addrlen = sizeof(clientAddr);
-			SOCKET clientSock = ::accept(sock, (SOCKADDR*)&addrlen, &addrlen);
+			ZeroMemory(&clientAddr, addrlen);
+			SOCKET clientSock = accept(listenSock, (SOCKADDR*)&clientAddr, &addrlen);
 			if (clientSock != INVALID_SOCKET)
 			{
-				cout << "Client Connected!\n";
-				v.push_back(Session{clientSock});
-			}
-		}
-
-		for (Session& s : v)
-		{
-			if (FD_ISSET(s.sock, &read))
-			{
-				int32 recvlen = ::recv(s.sock, s.recvBuf, BUFSIZ, NULL);
-				if (recvlen <= 0) continue;
-
-				s.recvBytes = recvlen;
-			}
-			if (FD_ISSET(s.sock, &write))
-			{
-				int32 sendlen = ::send(s.sock, &s.recvBuf[s.recvBytes], s.recvBytes - s.sendBytes, NULL);
-				if (sendlen == SOCKET_ERROR) continue;
+				cout << "Connected to client!\n";
 				
-				s.sendBytes += sendlen;
-				if (s.recvBytes == s.sendBytes)
+				WSAEVENT clientEvent = ::WSACreateEvent();
+				events.push_back(clientEvent);
+				sessions.push_back(Session{ clientSock });
+				if (::WSAEventSelect(clientSock, clientEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
 				{
-					s.recvBytes = s.sendBytes = 0;
+					return 0;
 				}
 			}
+		}
+		if (networkEvent.lNetworkEvents & FD_READ || networkEvent.lNetworkEvents & FD_WRITE)
+		{
+			if ((networkEvent.lNetworkEvents & FD_READ) && 
+				networkEvent.iErrorCode[FD_READ_BIT] != 0)
+				continue;
+			if ((networkEvent.lNetworkEvents & FD_WRITE) &&
+				networkEvent.iErrorCode[FD_WRITE_BIT] != 0)
+				continue;
+
+			Session& s = sessions[index];
+
+			if (s.recvBytes == 0)
+			{
+				int32 recvlen = ::recv(s.sock, s.recvBuf, BUFSIZE, NULL);
+				if (recvlen == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
+				{
+					// 세션 삭제
+					continue;
+				}
+				s.recvBytes = recvlen;
+				cout << "Receive Data : " << recvlen << '\n';
+			}
+			if (s.sendBytes < s.recvBytes)
+			{
+				int32 sendlen = ::send(s.sock, &s.recvBuf[s.sendBytes], s.recvBytes - s.sendBytes, NULL);
+				if (sendlen == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
+				{
+					// 세션 삭제
+					continue;
+				}
+				s.sendBytes += sendlen;
+				if (s.sendBytes == s.recvBytes)
+				{
+					s.sendBytes = s.recvBytes = 0;
+				}
+				cout << "Send Data : " << sendlen << '\n';
+			}
+		}
+		if (networkEvent.lNetworkEvents & FD_CLOSE)
+		{
+			
 		}
 	}
 
