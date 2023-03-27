@@ -32,7 +32,11 @@ private:
 template<class Type, class ...Args>
 inline Type* xnew(Args&&... args)
 {
+#ifdef _STOMP
+	Type* memory = static_cast<Type*>(StompAllocator::Alloc(sizeof(Type)));
+#else
 	Type* memory = static_cast<Type*>(PoolAllocator::Alloc(sizeof(Type)));
+#endif
 	new(memory)Type(forward<Args>(args)...);
 	return memory;
 }
@@ -41,7 +45,11 @@ template<class Type>
 inline void xdelete(Type* ptr)
 {
 	ptr->~Type();
+#ifdef _STOMP
+	StompAllocator::Release(ptr);
+#else
 	PoolAllocator::Release(ptr);
+#endif // _STOMP
 }
 
 template<class Type>

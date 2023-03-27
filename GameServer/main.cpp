@@ -8,20 +8,55 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+#include "Memory.h"
+#include "ThreadManager.h"
+
 const int BUFSIZE = 1024;
+
+enum IO_TYPE
+{
+	READ,
+	WRITE,
+	ACCEPT,
+	CONNECT
+};
 
 struct Session
 {
 	SOCKET sock = INVALID_SOCKET;
 	char recvBuf[BUFSIZE] = "";
 	int32 recvBytes = 0;
-	int32 sendBytes = 0;
 };
 
-void HandleError(string cause)
+struct OverlappedEx
 {
-	int32 errCode = ::WSAGetLastError();
-	cout << "[ERROR] Code : " << errCode << '\n';
+	WSAOVERLAPPED overlapped = {};
+	int32 type = 0;
+};
+
+void WorkerThreadMain(HANDLE iocpHandle)
+{
+	while (true)
+	{
+		DWORD bytesTransferred = 0;
+		Session* session = nullptr;
+		OverlappedEx* overlap = nullptr;
+		BOOL retval = ::GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, (PULONG_PTR)&session, (LPOVERLAPPED*)&overlap, INFINITE);
+		if (retval == FALSE || bytesTransferred == 0)
+			continue;
+
+		ASSERT_CRASH(overlap->type == IO_TYPE::READ);
+
+		cout << "Recv Data IOCP : " << bytesTransferred << '\n';
+
+		WSABUF wsaBuf;
+		wsaBuf.buf = session->recvBuf;
+		wsaBuf.len = BUFSIZE;
+		
+		DWORD recvLen = 0;
+		DWORD flag = 0;
+		::WSARecv(session->sock, &wsaBuf, 1, &recvLen, &flag, &overlap->overlapped, NULL);
+	}
 }
 
 int main()
@@ -29,7 +64,7 @@ int main()
 	WSADATA wsaData;
 	if (::WSAStartup(MAKEWORD(2, 2), &wsaData))
 	{
-		HandleError("Init");
+		return -1;
 	}
 
 	SOCKET listenSock = socket(PF_INET, SOCK_STREAM, 0);
@@ -42,102 +77,55 @@ int main()
 	::bind(listenSock, (SOCKADDR*)&addr, sizeof(addr));
 	::listen(listenSock, SOMAXCONN);
 
-	vector<WSAEVENT> events;
-	vector<Session> sessions;
-	sessions.reserve(100);
 
-	WSAEVENT listenEvent = ::WSACreateEvent();
-	events.push_back(listenEvent);
-	sessions.push_back({ listenSock });
-	/*
-		FD_ACCEPT  : 접속한 클라가 있음
-		FD_READ    : 데이터 수신 가능
-		FD_WRITE   : 데이터 송신 가능
-		FD_CLOSE   : 상대가 접속 종료
-		FD_CONNECT : 통신을 위한 연결 절차 완료
-		FD_OOB     : OOB 데이터
-	*/
-	if (::WSAEventSelect(listenSock, listenEvent, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR)
+	vector<Session*> sessionManager;
+
+	// CP 생성
+	HANDLE iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+
+	for (int i = 0; i < 4; ++i)
 	{
-		return -1;
+		GThreadManager->Launch([=]() { WorkerThreadMain(iocpHandle); });
 	}
 
+	// Main Thread (Accept 담당)
 	while (true)
 	{
-		int32 index = ::WSAWaitForMultipleEvents(events.size(), &events[0], false, WSA_INFINITE, false);
-		index -= WSA_WAIT_EVENT_0;
+		SOCKADDR_IN clientAddr;
+		int32 addrlen = sizeof(clientAddr);
+		SOCKET clientSock = ::accept(listenSock, (SOCKADDR*)&clientAddr, &addrlen);
+		if (clientSock == INVALID_SOCKET)
+			return 0;
 
-		//::WSAResetEvent(events[index]);
+		auto session = xnew<Session>();
+		session->sock = clientSock;
+		sessionManager.push_back(session);
 
-		WSANETWORKEVENTS networkEvent;
-		if (::WSAEnumNetworkEvents(sessions[index].sock, events[index], &networkEvent) == SOCKET_ERROR)
-			continue;
+		cout << "Client Connected!\n";
 
-		if (networkEvent.lNetworkEvents & FD_ACCEPT)
-		{	
-			if (networkEvent.iErrorCode[FD_ACCEPT_BIT] != 0)
-				continue;
-			
-			SOCKADDR_IN clientAddr;
-			int32 addrlen = sizeof(clientAddr);
-			ZeroMemory(&clientAddr, addrlen);
-			SOCKET clientSock = accept(listenSock, (SOCKADDR*)&clientAddr, &addrlen);
-			if (clientSock != INVALID_SOCKET)
-			{
-				cout << "Connected to client!\n";
-				
-				WSAEVENT clientEvent = ::WSACreateEvent();
-				events.push_back(clientEvent);
-				sessions.push_back(Session{ clientSock });
-				if (::WSAEventSelect(clientSock, clientEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
-				{
-					return 0;
-				}
-			}
-		}
-		if (networkEvent.lNetworkEvents & FD_READ || networkEvent.lNetworkEvents & FD_WRITE)
-		{
-			if ((networkEvent.lNetworkEvents & FD_READ) && 
-				networkEvent.iErrorCode[FD_READ_BIT] != 0)
-				continue;
-			if ((networkEvent.lNetworkEvents & FD_WRITE) &&
-				networkEvent.iErrorCode[FD_WRITE_BIT] != 0)
-				continue;
+		// 소켓을 CP에 등록
+		::CreateIoCompletionPort((HANDLE)clientSock, iocpHandle, (ULONG_PTR)session, 0);
+		
+		WSABUF wsaBuf;
+		wsaBuf.buf = session->recvBuf;
+		wsaBuf.len = BUFSIZE;
 
-			Session& s = sessions[index];
+		OverlappedEx* overlap = new OverlappedEx();
+		overlap->type = IO_TYPE::READ;
 
-			if (s.recvBytes == 0)
-			{
-				int32 recvlen = ::recv(s.sock, s.recvBuf, BUFSIZE, NULL);
-				if (recvlen == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
-				{
-					// 세션 삭제
-					continue;
-				}
-				s.recvBytes = recvlen;
-				cout << "Receive Data : " << recvlen << '\n';
-			}
-			if (s.sendBytes < s.recvBytes)
-			{
-				int32 sendlen = ::send(s.sock, &s.recvBuf[s.sendBytes], s.recvBytes - s.sendBytes, NULL);
-				if (sendlen == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
-				{
-					// 세션 삭제
-					continue;
-				}
-				s.sendBytes += sendlen;
-				if (s.sendBytes == s.recvBytes)
-				{
-					s.sendBytes = s.recvBytes = 0;
-				}
-				cout << "Send Data : " << sendlen << '\n';
-			}
-		}
-		if (networkEvent.lNetworkEvents & FD_CLOSE)
-		{
-			
-		}
+		DWORD recvLen = 0;
+		DWORD flag = 0;
+		::WSARecv(clientSock, &wsaBuf, 1, &recvLen, &flag, &overlap->overlapped, NULL);
+
+		/*auto* back = sessionManager.back();
+		sessionManager.pop_back();
+		xdelete(back);*/
+
+		//closesocket(session.sock);
+		//WSACloseEvent(wsaEvent);
 	}
+
+	//GThreadManager->Join();
 
 	::WSACleanup();
 }
