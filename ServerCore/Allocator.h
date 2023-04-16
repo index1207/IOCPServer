@@ -55,11 +55,11 @@ public:
 	Type* allocate(size_t count)
 	{
 		const int32 size = count * sizeof(Type);
-		return static_cast<Type*>(XALLOC(size));
+		return static_cast<Type*>(PoolAllocator::Alloc(size));
 	}
 
 	void deallocate(Type* ptr, size_t count)
 	{
-		XRELEASE(ptr);
+		PoolAllocator::Release(ptr);
 	}
 };

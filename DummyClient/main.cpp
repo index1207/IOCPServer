@@ -3,75 +3,90 @@
 
 #include <winsock2.h>
 #include <mswsock.h>
-#include <WS2tcpip.h>
+#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
-void HandleError(string cause)
+void HandleError(const char* cause)
 {
 	int32 errCode = ::WSAGetLastError();
-	cout << "[ERROR] Code : " << errCode << '\n';
+	cout << cause << " ErrorCode : " << errCode << endl;
 }
 
 int main()
 {
-	this_thread::sleep_for(100ms);
-	WSADATA wsaData;
+	WSAData wsaData;
 	if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-	{
-		return -1;
-	}
+		return 0;
 
-	SOCKET s = socket(PF_INET, SOCK_STREAM, 0);
-	
-	u_long isBlocking = false;
-	ioctlsocket(s, FIONBIO, &isBlocking);
+	SOCKET clientSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+	if (clientSocket == INVALID_SOCKET)
+		return 0;
 
-	SOCKADDR_IN addr;
-	addr.sin_family = AF_INET;
-	inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
-	addr.sin_port = htons(1225);
-	
+	u_long on = 1;
+	if (::ioctlsocket(clientSocket, FIONBIO, &on) == INVALID_SOCKET)
+		return 0;
+
+	SOCKADDR_IN serverAddr;
+	::memset(&serverAddr, 0, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+	::inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+	serverAddr.sin_port = ::htons(7777);
+
+	// Connect
 	while (true)
 	{
-		if (::connect(s, (SOCKADDR*)&addr, sizeof(addr)) == SOCKET_ERROR)
+		if (::connect(clientSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
 		{
+			// 원래 블록했어야 했는데... 너가 논블로킹으로 하라며?
 			if (::WSAGetLastError() == WSAEWOULDBLOCK)
 				continue;
+			// 이미 연결된 상태라면 break
 			if (::WSAGetLastError() == WSAEISCONN)
 				break;
+			// Error
+			break;
 		}
 	}
 
-	cout << "connected!\n";
+	cout << "Connected to Server!" << endl;
 
-	char buf[100] = "Hello World!";
-	WSAOVERLAPPED overlap;
+	char sendBuffer[100] = "Hello World";
 	WSAEVENT wsaEvent = ::WSACreateEvent();
-	overlap.hEvent = wsaEvent;
-	
+	WSAOVERLAPPED overlapped = {};
+	overlapped.hEvent = wsaEvent;
+
+	// Send
 	while (true)
 	{
 		WSABUF wsaBuf;
-		wsaBuf.buf = buf;
+		wsaBuf.buf = sendBuffer;
 		wsaBuf.len = 100;
 
 		DWORD sendLen = 0;
 		DWORD flags = 0;
-		if (::WSASend(s, &wsaBuf, 1, &sendLen, flags, &overlap, nullptr) == SOCKET_ERROR)
+		if (::WSASend(clientSocket, &wsaBuf, 1, &sendLen, flags, &overlapped, nullptr) == SOCKET_ERROR)
 		{
 			if (::WSAGetLastError() == WSA_IO_PENDING)
 			{
-				::WSAWaitForMultipleEvents(1, &wsaEvent, true, WSA_INFINITE, false);
-				::WSAGetOverlappedResult(s, &overlap, &sendLen, true, &flags);
+				// Pending
+				::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, FALSE);
+				::WSAGetOverlappedResult(clientSocket, &overlapped, &sendLen, FALSE, &flags);
 			}
-			else break;
+			else
+			{
+				// 진짜 문제 있는 상황
+				break;
+			}
 		}
 
-		cout << "Data Send Len! = " << sendLen << "\n";
+		cout << "Send Data ! Len = " << sizeof(sendBuffer) << endl;
 
 		this_thread::sleep_for(1s);
 	}
 
-	::closesocket(s);
+	// 소켓 리소스 반환
+	::closesocket(clientSocket);
+
+	// 윈속 종료
 	::WSACleanup();
 }

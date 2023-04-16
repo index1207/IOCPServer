@@ -14,6 +14,11 @@
 
 using namespace std;
 
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <MSWSock.h>
+
 #include "Lock.h"
 #include "ObjectPool.h"
 #include "TypeCast.h"
+#include "Memory.h"
