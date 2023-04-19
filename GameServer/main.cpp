@@ -14,16 +14,16 @@ int main()
 	Listener listener;
 	listener.StartAccept(NetAddress(L"127.0.0.1", 7777));
 
-	for (int32 i = 0; i < 4; ++i)
+	for (int32 i = 0; i < 5; ++i)
 	{
 		GThreadManager->Launch([=]() {
 			while (true)
 			{
-				GIOCPCore.Dispatch();
+				GIocpCore.Dispatch();
 			}
 		});
 	}
 	GThreadManager->Join();
 
-	while(true) {}
+	return 0;
 }

@@ -20,6 +20,13 @@ using CondVar = std::condition_variable;
 using UniqueLock = std::unique_lock<std::mutex>;
 using LockGuard = std::lock_guard<std::mutex>;
 
+using IocpCorePtr = std::shared_ptr<class IocpCore>;
+using IocpObjectPtr = std::shared_ptr<class IocpObject>;
+using IocpEventPtr = std::shared_ptr<class IocpEvent>;
+using SessionPtr = std::shared_ptr<class Session>;
+using ListenerPtr = std::shared_ptr<class Listener>;
+using ServerServicePtr = std::shared_ptr<class ServerService>;
+
 #define size16(val) static_cast<int16>(sizeof(val))
 #define size32(val) static_cast<int32>(sizeof(val))
 #define len16(arr) static_cast<int16>(sizeof(arr)/sizeof(*arr))
