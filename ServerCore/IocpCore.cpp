@@ -2,8 +2,6 @@
 #include "IocpCore.h"
 #include "IocpEvent.h"
 
-IocpCore GIocpCore;
-
 IocpCore::IocpCore()
 {
 	_iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
@@ -15,7 +13,7 @@ IocpCore::~IocpCore()
 	::CloseHandle(_iocpHandle);
 }
 
-bool IocpCore::Register(class IocpObject* iocpObject)
+bool IocpCore::Register(IocpObjectPtr iocpObject)
 {
 	return ::CreateIoCompletionPort(iocpObject->GetHandle(), _iocpHandle, /* Key */ 0, 0);
 }
@@ -24,12 +22,12 @@ bool IocpCore::Dispatch(uint32 timeoutMs)
 {
 	DWORD numOfBytes = 0;
 	ULONG_PTR key = 0;
-	IocpObject* iocpObject = nullptr;
 	IocpEvent* iocpEvent = nullptr;
 
 	if (::GetQueuedCompletionStatus(_iocpHandle, &numOfBytes, &key, reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeoutMs))
 	{
-		iocpObject->Dispatch(iocpEvent, numOfBytes);
+		IocpObjectPtr iocpObj = iocpEvent->owner;
+		iocpObj->Dispatch(iocpEvent, numOfBytes);
 	}
 	else
 	{
@@ -40,7 +38,8 @@ bool IocpCore::Dispatch(uint32 timeoutMs)
 			return false;
 			break;
 		default:
-			iocpObject->Dispatch(iocpEvent, numOfBytes);
+			IocpObjectPtr iocpObj = iocpEvent->owner;
+			iocpObj->Dispatch(iocpEvent, numOfBytes);
 			break;
 		}
 	}

@@ -3,6 +3,7 @@
 #include "SocketUtil.h"
 #include "IocpEvent.h"
 #include "Session.h"
+#include "Service.h"
 
 Listener::~Listener()
 {
@@ -16,32 +17,36 @@ Listener::~Listener()
 	}
 }
 
-bool Listener::StartAccept(NetAddress netAddr)
+bool Listener::StartAccept(ServerServicePtr service)
 {
+	_service = service;
+	if (_service == nullptr) return false;
+
 	_socket = SocketUtil::CreateSocket();
 	if (_socket == INVALID_SOCKET)
 		return false;
 	
-	if (GIocpCore.Register(this) == false)
+	if (_service->GetIocpCore()->Register(shared_from_this()) == false)
 		return false;
 	if (SocketUtil::SetReuseAddress(_socket, true) == false)
 		return false;
 	if (SocketUtil::SetLinger(_socket, 0, 0) == false)
 		return false;
-	if (SocketUtil::Bind(_socket, netAddr) == false)
+	if (SocketUtil::Bind(_socket, service->GetNetAddress()) == false)
 		return false;
 	if (SocketUtil::Listen(_socket) == false)
 		return false;
 
-	const int32 acceptCount = 1;
+	const int32 acceptCount = service->GetMaxSessionCount();
 	for (int32 i = 0; i < acceptCount; ++i)
 	{
 		auto acceptEvent = xnew<AcceptEvent>();
+		acceptEvent->owner = shared_from_this();
 		_acptEvnts.push_back(acceptEvent);
 		RegisterAccept(acceptEvent);
 	}
 
-	return false;
+	return true;
 }
 
 void Listener::CloseSocket()
@@ -56,7 +61,7 @@ HANDLE Listener::GetHandle()
 
 void Listener::Dispatch(class IocpEvent* iocpEvent, int32 numOfBytes)
 {
-	ASSERT_CRASH(iocpEvent->GetType() == EventType::Accept);
+	ASSERT_CRASH(iocpEvent->eventType == EventType::Accept);
 
 	auto acceptEvent = static_cast<AcceptEvent*>(iocpEvent);
 	ProcessAccept(acceptEvent);
@@ -64,13 +69,13 @@ void Listener::Dispatch(class IocpEvent* iocpEvent, int32 numOfBytes)
 
 void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 {
-	auto session = xnew<Session>();
+	SessionPtr session = _service->CreateSession();
 
 	acceptEvent->Init();
-	acceptEvent->SetSession(session);
+	acceptEvent->session = session;
 
 	DWORD dwBytesReceived = 0;
-	if (false == SocketUtil::AcceptEx(_socket, session->GetSocket(), session->_recvBuffer, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &dwBytesReceived, static_cast<LPOVERLAPPED>(acceptEvent)))
+	if (!SocketUtil::AcceptEx(_socket, session->GetSocket(), session->_recvBuffer, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &dwBytesReceived, static_cast<LPOVERLAPPED>(acceptEvent)))
 	{
 		const int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING)
@@ -82,7 +87,7 @@ void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 
 void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 {
-	auto session = acceptEvent->GetSession();
+	auto session = acceptEvent->session;
 
 	if (!SocketUtil::SetUpdateAcceptSocket(session->GetSocket(), _socket))
 	{

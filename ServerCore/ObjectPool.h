@@ -30,9 +30,10 @@ public:
 #endif // _STOMP
 	}
 
-	static std::shared_ptr<Type> MakeShared()
+	template<class... Args>
+	static inline std::shared_ptr<Type> MakeShared(Args&&... args)
 	{
-		return std::shared_ptr<Type>{ Pop(), Push };
+		return std::shared_ptr<Type>{ Pop(std::forward(args)...), Push };
 	}
 private:
 	static int32 s_allocSize;

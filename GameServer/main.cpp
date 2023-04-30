@@ -5,25 +5,33 @@
 #include "ThreadManager.h"
 
 #include "SocketUtil.h"
+#include "Service.h"
+#include "Session.h"
 #include "Listener.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
 int main()
 {
-	Listener listener;
-	listener.StartAccept(NetAddress(L"127.0.0.1", 7777));
+	auto service = MakeShared<ServerService>(
+		NetAddress(L"127.0.0.1", 7777),
+		MakeShared<IocpCore>(),
+		MakeShared<Session>,
+		100
+	);
 
-	for (int32 i = 0; i < 5; ++i)
+	ASSERT_CRASH(service->Start());
+
+	for (int32 i = 0; i < 4; ++i)
 	{
-		GThreadManager->Launch([=]() {
+		GThreadManager->Launch([&]() {
 			while (true)
 			{
-				GIocpCore.Dispatch();
+				service->GetIocpCore()->Dispatch();
 			}
 		});
 	}
-	GThreadManager->Join();
 
+	GThreadManager->Join();
 	return 0;
 }

@@ -84,6 +84,15 @@ int main()
 		this_thread::sleep_for(1s);
 	}
 
+	while (true)
+	{
+		if (WSAGetLastError() != 0)
+		{
+			cout << WSAGetLastError() << '\n';
+			break;
+		}
+	}
+
 	// 家南 府家胶 馆券
 	::closesocket(clientSocket);
 

@@ -5,7 +5,7 @@
    --------------- */
 
 // Completion Key
-class IocpObject
+class IocpObject : public enable_shared_from_this<IocpObject>
 {
 public:
     virtual HANDLE GetHandle() abstract;
@@ -27,12 +27,10 @@ public:
     HANDLE GetHandle() { return _iocpHandle; }
 
     // iocp에 등록한다.
-    bool Register(class IocpObject* iocpObject);
+    bool Register(IocpObjectPtr iocpObject);
 
     // iocp의 일감을 찾는다.
     bool Dispatch(uint32 timeoutMs = INFINITE);
 private:
     HANDLE _iocpHandle;
 };
-
-extern IocpCore GIocpCore;

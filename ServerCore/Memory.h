@@ -32,11 +32,7 @@ private:
 template<class Type, class ...Args>
 inline Type* xnew(Args&&... args)
 {
-#ifdef _STOMP
-	Type* memory = static_cast<Type*>(StompAllocator::Alloc(sizeof(Type)));
-#else
 	Type* memory = static_cast<Type*>(PoolAllocator::Alloc(sizeof(Type)));
-#endif
 	new(memory)Type(forward<Args>(args)...);
 	return memory;
 }
@@ -45,15 +41,11 @@ template<class Type>
 inline void xdelete(Type* ptr)
 {
 	ptr->~Type();
-#ifdef _STOMP
-	StompAllocator::Release(ptr);
-#else
 	PoolAllocator::Release(ptr);
-#endif // _STOMP
 }
 
-template<class Type>
-inline shared_ptr<Type> MakeShared()
+template<class Type, class ...Args>
+inline shared_ptr<Type> MakeShared(Args&&... args)
 {
-	return shared_ptr<Type>{xnew<Type>(), xdelete<Type>};
+	return shared_ptr<Type>{xnew<Type>(forward<Args>(args)...), xdelete<Type>};
 }

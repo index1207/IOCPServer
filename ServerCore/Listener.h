@@ -11,7 +11,7 @@ public:
 	Listener() = default;
 	~Listener();
 public:
-	bool StartAccept(NetAddress netAddr);
+	bool StartAccept(ServerServicePtr service);
 	void CloseSocket();
 public:
 	virtual HANDLE GetHandle() override;
@@ -22,5 +22,6 @@ private:
 protected:
 	SOCKET _socket;
 	Vector<AcceptEvent*> _acptEvnts;
+	ServerServicePtr _service;
 };
 
