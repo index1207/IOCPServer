@@ -11,12 +11,29 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+
+class GameSession : public Session
+{
+	virtual int32 OnRecv(BYTE* buffer, int32 len) override
+	{
+		cout << "Recv len = " << len << '\n';
+		Send(buffer, len);
+
+		return len;
+	}
+
+	virtual void OnSend(int32 len)
+	{
+		cout << "Send len = " << len << '\n';
+	}
+};
+
 int main()
 {
 	auto service = MakeShared<ServerService>(
 		NetAddress(L"127.0.0.1", 7777),
 		MakeShared<IocpCore>(),
-		MakeShared<Session>,
+		MakeShared<GameSession>,
 		100
 	);
 

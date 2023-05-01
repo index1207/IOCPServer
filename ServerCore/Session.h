@@ -10,7 +10,6 @@ class Session : public IocpObject
 	friend class Listener;
 	friend class IocpCore;
 	friend class Service;
-
 public:
 	Session();
 	virtual ~Session();
@@ -33,11 +32,11 @@ private:
 private:
 	void RegisterConnect();
 	void RegisterRecv();
-	void RegisterSend();
+	void RegisterSend(SendEvent* sendEvent);
 
 	void ProcessConnect();
 	void ProcessRecv(int32 numOfBytes);
-	void ProcessSend(int32 numOfBytes);
+	void ProcessSend(SendEvent* sendEvent, int32 numOfBytes);
 
 	void HandleError(int32 errorCode);
 protected:
@@ -47,7 +46,9 @@ protected:
 	virtual void OnDisconnected() { };
 public:
 	/* TEMP */
-	char _recvBuffer[1000];
+	BYTE _recvBuffer[1000];
+	BYTE _sendBuffer[1000];
+	int32 _sendLen;
 private:
 	weak_ptr<Service> _service;
 	SOCKET _socket = INVALID_SOCKET;
